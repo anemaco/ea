@@ -13,16 +13,16 @@
 extern   int      InitialBalance        = 100;
 extern   double   InitialLots           = 0.01;
 extern   bool     LotsOptimize          = true;
-extern   double   CCITimeFrame          = 24;
+extern   double   CCITimeFrame          = 27;
 //extern   double   CCIControl        = 100;
-extern   double   CCIChangeTrend        = 100;
+extern   double   CCIChangeTrend        = 0;
 extern   int      MaxOrder              = 5;
 extern   int      MinSpaceOrder         = 3;
 extern   int      FastMA                = 3;
 extern   int      MidMa                 = 4;
 extern   int      SlowMa                = 200;
-extern   int      MinSpaceFastAndSlow   = 250;
-extern   int      MaxSpaceFastAndSlow   = 1000;
+extern   int      MinSpaceFastAndSlow   = 150;
+extern   int      MaxSpaceFastAndSlow   = 500;
 extern   int      StopLoss              = 500;
 extern   bool     StopLossOptimize      = false;
 extern   int      TakeProfit            = 100;
@@ -99,8 +99,7 @@ int start()
        //+------------------------------------------------------------------+
        //| Signal Begin(Entry)                                              |
        //+------------------------------------------------------------------+
-
-       if (
+      if (
            PrevFastMaValue <= PrevMidMaValue
            &&CurrentFastMaValue > CurrentMidMaValue
            &&CurrentMidMaValue > CurrentSlowMaValue
@@ -108,6 +107,7 @@ int start()
            &&Space>MinSpaceFastAndSlow
            &&Space<MaxSpaceFastAndSlow
            &&StatusCCI==CCI_TO_TOP
+           &&PrevtCCI<CurrentCCI
            ) Order = SIGNAL_BUY;
 
        if (
@@ -118,6 +118,7 @@ int start()
            &&Space>MinSpaceFastAndSlow
            &&Space<MaxSpaceFastAndSlow
            &&StatusCCI==CCI_TO_BOT
+           &&PrevtCCI>CurrentCCI
            ) Order = SIGNAL_SELL;
 
 
