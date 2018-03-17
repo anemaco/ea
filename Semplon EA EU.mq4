@@ -78,6 +78,7 @@ int start()
     double PrevVeryFastMaValue = iMA(Symbol(), PERIOD_CURRENT, 1, 0, MODE_SMA, PRICE_CLOSE, 5);
     double CurrentVeryFastMaValue = iMA(Symbol(), PERIOD_CURRENT, 1, 0, MODE_SMA, PRICE_CLOSE, 0);
 
+    double PrevtCCI = iCCI(Symbol(), 0, CCITimeFrame, PRICE_TYPICAL, 2);
     double CurrentCCI = iCCI(Symbol(), 0, CCITimeFrame, PRICE_TYPICAL, 0);
 
     if(CurrentCCI>CCIChangeTrend){
