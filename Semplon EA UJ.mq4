@@ -11,10 +11,9 @@
 #define CCI_TO_TOP  2
 
 extern   int      InitialBalance        = 100;
-extern   double   InitialLots           = 0.01;
+extern   double   InitialLots           = 0.02;
 extern   bool     LotsOptimize          = true;
 extern   double   CCITimeFrame          = 24;
-//extern   double   CCIControl        = 100;
 extern   double   CCIChangeTrend        = 100;
 extern   int      MaxOrder              = 5;
 extern   int      MinSpaceOrder         = 3;
@@ -138,8 +137,6 @@ int start()
                      nextStopLost = Bid-((TakeProfit+StopTrail)*InitialLots*Point);
                         if(nextStopLost > prevStopLost){
                           sl=NormalizeDouble(nextStopLost, Digits);
-                        }else{
-                          sl=NormalizeDouble(OrderStopLoss(),Digits);
                         }
                     }else if(prevStopLost == -1000 && CurrentSlowMaValue<Bid){
                          sl=NormalizeDouble(Bid-(StopLoss*Point),Digits);
@@ -156,8 +153,6 @@ int start()
                          nextStopLost = Ask+((TakeProfit+StopTrail)*InitialLots*Point);
                          if(nextStopLost<prevStopLost){
                            sl=NormalizeDouble(nextStopLost,Digits);
-                         }else{
-                           sl=NormalizeDouble(OrderStopLoss(),Digits);
                          }
                     }else if(prevStopLost == 1000 && CurrentSlowMaValue>Ask){
                         sl=NormalizeDouble(Ask+(optimizeStopLoss()*Point),Digits);

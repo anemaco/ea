@@ -25,10 +25,18 @@ extern   int      MinSpaceFastAndSlow   = 150;
 extern   int      MaxSpaceFastAndSlow   = 500;
 extern   int      StopLoss              = 500;
 extern   bool     StopLossOptimize      = false;
+extern   int      MaxLoss               = 2500;
 extern   int      TakeProfit            = 100;
 extern   int      StopTrail             = 1;
 extern   int      Slippage              = 3;
 
+
+int  CurrentOrder = 0;
+int  cnt,ticket,total;
+int  lastOpen = 0;
+
+int  StatusCCI = 0;
+int  AQ = 0;
 
 int  CurrentOrder = 0;
 int  cnt,ticket,total;
@@ -100,7 +108,8 @@ int start()
        //+------------------------------------------------------------------+
        //| Signal Begin(Entry)                                              |
        //+------------------------------------------------------------------+
-      if (
+
+       if (
            PrevFastMaValue <= PrevMidMaValue
            &&CurrentFastMaValue > CurrentMidMaValue
            &&CurrentMidMaValue > CurrentSlowMaValue
@@ -137,8 +146,6 @@ int start()
                      nextStopLost = Bid-((TakeProfit+StopTrail)*InitialLots*Point);
                         if(nextStopLost > prevStopLost){
                           sl=NormalizeDouble(nextStopLost, Digits);
-                        }else{
-                          sl=NormalizeDouble(OrderStopLoss(),Digits);
                         }
                     }else if(prevStopLost == -1000 && CurrentSlowMaValue<Bid){
                          sl=NormalizeDouble(Bid-(StopLoss*Point),Digits);
@@ -155,8 +162,6 @@ int start()
                          nextStopLost = Ask+((TakeProfit+StopTrail)*InitialLots*Point);
                          if(nextStopLost<prevStopLost){
                            sl=NormalizeDouble(nextStopLost,Digits);
-                         }else{
-                           sl=NormalizeDouble(OrderStopLoss(),Digits);
                          }
                     }else if(prevStopLost == 1000 && CurrentSlowMaValue>Ask){
                         sl=NormalizeDouble(Ask+(optimizeStopLoss()*Point),Digits);
