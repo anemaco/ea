@@ -38,12 +38,8 @@ int  lastOpen = 0;
 int  StatusCCI = 0;
 int  AQ = 0;
 
-int  CurrentOrder = 0;
-int  cnt,ticket,total;
-int  lastOpen = 0;
-
-int  StatusCCI = 0;
-int  AQ = 0;
+double  Top         = 0;
+double  Bot         = 1000;
 
 double optimizeLots(){
     if(LotsOptimize){
@@ -59,6 +55,20 @@ int optimizeStopLoss(){
         return NormalizeDouble(AccountEquity()/InitialBalance*StopLoss,0);
     }
     return StopLoss;
+}
+
+void init(){
+
+}
+
+void setBotAndTop(int position){
+    if(High[position]>Top){
+       Top = High[position];
+     }
+
+    if(Low[position]<Bot){
+       Bot = Low[position];
+    }
 }
 
 int start()

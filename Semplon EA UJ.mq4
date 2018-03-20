@@ -40,6 +40,9 @@ int  ProfitTaget    = 0;
 int  StatusCCI = 0;
 int  AQ = 0;
 
+double  Top         = 0;
+double  Bot         = 1000;
+
 double optimizeLots(){
     if(LotsOptimize){
         return NormalizeDouble(AccountEquity()/InitialBalance*InitialLots, 2);
@@ -68,6 +71,20 @@ void closeAll(){
    }
 }
 
+int init(){
+
+}
+
+void setBotAndTop(int position){
+    if(High[position]>Top){
+       Top = High[position];
+     }
+
+    if(Low[position]<Bot){
+       Bot = Low[position];
+    }
+}
+
 double RealEquity(){
      AQ = AccountEquity();
 
@@ -80,8 +97,18 @@ double RealEquity(){
      return AQ;
 }
 
+void resetTopAndBot(){
+    Top         = 0;
+    Bot         = 1000;
+    int i;
+    for(i=100;i<=0;i--){
+       setBotAndTop(i);
+    }
+}
+
 int start()
  {
+    resetTopAndBot();
     AQ = AccountEquity();
     if(OpenDay+86400<iTime(Symbol(),PERIOD_CURRENT,0)){
         ProfitTaget = AQ+(AQ/100*MaxDailyProfit);
@@ -149,6 +176,7 @@ int start()
            &&Space<MaxSpaceFastAndSlow
            &&StatusCCI==CCI_TO_TOP
            &&PrevtCCI<CurrentCCI
+//           &&Top>High[0]
            ) Order = SIGNAL_BUY;
 
        if (
@@ -162,6 +190,7 @@ int start()
            &&Space<MaxSpaceFastAndSlow
            &&StatusCCI==CCI_TO_BOT
            &&PrevtCCI>CurrentCCI
+//           &&Bot<Low[0]
            ) Order = SIGNAL_SELL;
 
 
