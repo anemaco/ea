@@ -3,172 +3,194 @@
 //+------------------------------------------------------------------+
 #property copyright "Adnan De Semplon"
 
-#define SIGNAL_NONE 0
+#define SIGNAL_NONE  0
 #define SIGNAL_BUY   1
 #define SIGNAL_SELL  2
 
-extern   int      InitialBalance        = 100;
-extern   double   InitialLots           = 0.10;
-extern   bool     LotsOptimize          = true;
-extern   int      MaxOrder              = 10;
-extern   int      MinSpaceOrder         = 10;
-extern   int      FastMA                = 4;
-extern   int      MidMa                 = 5;
-extern   int      StopLoss              = 20;
-extern   bool     StopLossOptimize      = false;
-extern   int      TakeProfit            = 10;
-extern   int      StopTrail             = 3;
+#define STATUS_CLOSE  0
+#define STATUS_OPEN   1
+
+#define LAST_SELL  0
+#define LAST_BUY   1
+
+
+extern   int      InitialBalance        = 1000;
+extern   double   InitialLots           = 0.01;
+extern   bool     LotsOptimize          = false;
+extern   int      FastMA                = 3;
+extern   int      SlowMa                = 15;
+extern   int      SpacePerOrder         = 5;
+extern   int      ForceXcandle          = 5;
+extern   int      MartiIn               = 20;
+extern   double   TakeProfitBaseCurency = 10;
 extern   int      Slippage              = 3;
-extern   int      MaxDailyProfit = 10;
+extern   double   MaxDailyProfit        = 0.02;
+extern   double   MaxLost               = 0.05;
 
+double  MartiBuyAt            = 0;
+double  MartiSellAt           = 0;
+int     MartiIndex            = 0;
 
-int  lastOpen       = 0;
-int  OpenDay        = 0;
-int  ProfitTaget    = 0;
-int  Ticket    = 0;
+int     OpenDay             = 0;
+int     lastOpen            = 0;
+int     Order               = 0;
+int     Status              = 0;
+int     LastOrder           = 0;
+double  OpenLot             = 0;
+double  AQ                  = 0;
+double  ProfitTaget         = 0;
+double  DailyProfitTaget    = 0;
+double  DailyMaxLoss        = 0;
+double  OpenEquity          = 0;
 
-int  AQ = 0;
 
 double optimizeLots(){
     if(LotsOptimize){
-        return NormalizeDouble(AccountBalance()/InitialBalance*InitialLots, 2);
+        return NormalizeDouble(AccountEquity()/InitialBalance*InitialLots, 2);
     }
 
     return InitialLots;
 }
 
-int optimizeStopLoss(){
-    AQ = AccountBalance();
-    if(StopLossOptimize && AQ>InitialBalance){
-        return NormalizeDouble(AccountBalance()/InitialBalance*StopLoss,0);
-    }
-    return StopLoss;
-}
-
 void closeAll(){
-   for (int i=0; i<OrdersTotal(); i++){
-    if (OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
-      {
-         if(OrderType()==OP_BUY)
-             OrderClose(OrderTicket(),OrderLots(),Bid, 3,White);
-         if(OrderType()==OP_SELL)
-             OrderClose(OrderTicket(),OrderLots(),Ask, 3,White);
+   while(OrdersTotal()>=1){
+     for (int i=0; i<OrdersTotal(); i++){
+       if (OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+         {
+            if(OrderType()==OP_BUY)
+                OrderClose(OrderTicket(),OrderLots(),Bid, 3,White);
+            if(OrderType()==OP_SELL)
+                OrderClose(OrderTicket(),OrderLots(),Ask, 3,White);
+         }
       }
    }
 }
 
-double RealEquity(){
-     AQ = AccountBalance();
-
-     for (int i=0; i<OrdersTotal(); i++){
-       if (OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
-        {
-            AQ+=OrderProfit();
-        }
-     }
-     return AQ;
-}
 
 int start()
  {
-    AQ = AccountBalance();
-    if(OpenDay+86400<iTime(Symbol(),PERIOD_CURRENT,0)){
-        ProfitTaget = AQ+(AQ/100*MaxDailyProfit);
-        OpenDay = iTime(Symbol(),PERIOD_CURRENT,0);
+    AQ = AccountEquity();
+
+    if(Status==STATUS_CLOSE){
+       ProfitTaget = AQ+(AQ+TakeProfitBaseCurency);
     }
 
-    if(Bars<50+MidMa) return;
+    if(OpenDay+86400<iTime(Symbol(),PERIOD_CURRENT,0)){
+       DailyProfitTaget = AQ+(AQ*MaxDailyProfit);
+       DailyMaxLoss = AQ-(AQ*MaxLost);
+       OpenDay = iTime(Symbol(),PERIOD_CURRENT,0);
+    }
+
+
+    if(Bars<50+SlowMa) return;
 
     int Order = SIGNAL_NONE;
     int Sideway = false;
 
-    double PrevFastMaValue2 = iMA(Symbol(), PERIOD_CURRENT, FastMA, 0, MODE_SMA, PRICE_CLOSE, 2);
-    double PrevMidMaValue2  = iMA(Symbol(), PERIOD_CURRENT, MidMa, 0, MODE_SMA, PRICE_CLOSE, 2);
+    double PrevFastMaValue  = iMA(Symbol(), PERIOD_CURRENT, FastMA, 0, MODE_SMA, PRICE_CLOSE, 1);
+    double PrevSlowMaValue  = iMA(Symbol(), PERIOD_CURRENT, SlowMa, 0, MODE_SMA, PRICE_CLOSE, 1);
 
-    double PrevFastMaValue = iMA(Symbol(), PERIOD_CURRENT, FastMA, 0, MODE_SMA, PRICE_CLOSE, 1);
-    double PrevMidMaValue  = iMA(Symbol(), PERIOD_CURRENT, MidMa, 0, MODE_SMA, PRICE_CLOSE, 1);
-
-    double CurrentFastMaValue = iMA(Symbol(), PERIOD_CURRENT, FastMA, 0, MODE_SMA, PRICE_CLOSE, 0);
-    double CurrentMidMaValue  = iMA(Symbol(), PERIOD_CURRENT, MidMa, 0, MODE_SMA, PRICE_CLOSE, 0);
-
-    double PrevPrevMidMaValue = iMA(Symbol(), PERIOD_CURRENT, MidMa, 0, MODE_SMA, PRICE_CLOSE, 3);
-
-    double PrevVeryFastMaValue = iMA(Symbol(), PERIOD_CURRENT, 1, 0, MODE_SMA, PRICE_CLOSE, 5);
-    double CurrentVeryFastMaValue = iMA(Symbol(), PERIOD_CURRENT, 1, 0, MODE_SMA, PRICE_CLOSE, 0);
-
+    double CurrentFastMaValue   = iMA(Symbol(), PERIOD_CURRENT, FastMA, 0, MODE_SMA, PRICE_CLOSE, 0);
+    double CurrentSlowMaValue   = iMA(Symbol(), PERIOD_CURRENT, SlowMa, 0, MODE_SMA, PRICE_CLOSE, 0);
 
        //+------------------------------------------------------------------+
        //| Signal Begin(Entry)                                              |
        //+------------------------------------------------------------------+
 
+//create first entry buy signal
        if (
-           PrevFastMaValue >= PrevMidMaValue
-           &&CurrentFastMaValue < CurrentMidMaValue
+           PrevFastMaValue >= PrevSlowMaValue
+           &&CurrentFastMaValue < CurrentSlowMaValue
+           &&Status==STATUS_CLOSE
            ) Order = SIGNAL_BUY;
 
+//create first entry sell signal
        if (
-           PrevFastMaValue <= PrevMidMaValue
-           &&CurrentFastMaValue > CurrentMidMaValue
+           PrevFastMaValue <= PrevSlowMaValue
+           &&CurrentFastMaValue > CurrentSlowMaValue
+           &&Status==STATUS_CLOSE
            ) Order = SIGNAL_SELL;
 
+//take profit
+        if((AQ > OpenEquity+TakeProfitBaseCurency) && Status==STATUS_OPEN){
+            closeAll();
+            Status=STATUS_CLOSE;
+        }
 
-       if(OrdersTotal()>=1){
-         double sl=0;
-         double nextStopLost=0;
-         double prevStopLost=0;
-         for (int i=0; i<OrdersTotal(); i++){
-              if (OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
-              {
-                 sl=OrderStopLoss();
-                 if(OrderType()==OP_BUY){
-                    prevStopLost = OrderStopLoss()==0?(-1000):OrderStopLoss();
-                    if(OrderProfit()> TakeProfit*OrderLots()){
-                     nextStopLost = Bid-((TakeProfit+StopTrail)*InitialLots*Point);
-                        if(nextStopLost > prevStopLost){
-                          sl=NormalizeDouble(nextStopLost, Digits);
-                        }
-                    }else if(prevStopLost == -1000){
-                         sl=NormalizeDouble(Bid-(StopLoss*Point),Digits);
-                    }
+//force Close
+        if(lastOpen<iTime(Symbol(),PERIOD_CURRENT,ForceXcandle) && AQ > OpenEquity){
+            closeAll();
+            Status=STATUS_CLOSE;
+        }
 
-                    if(prevStopLost!=sl && nextStopLost != -1000){
-                         OrderModify(OrderTicket(),OrderOpenPrice(),sl,OrderTakeProfit(),0,Blue);
-                    }
-                 }
-
-                 if(OrderType()==OP_SELL){
-                    prevStopLost = OrderStopLoss()==0?1000:OrderStopLoss();
-                    if(OrderProfit()> TakeProfit*OrderLots()){
-                         nextStopLost = Ask+((TakeProfit+StopTrail)*InitialLots*Point);
-                         if(nextStopLost<prevStopLost){
-                           sl=NormalizeDouble(nextStopLost,Digits);
-                         }
-                    }else if(prevStopLost == 1000){
-                        sl=NormalizeDouble(Ask+(optimizeStopLoss()*Point),Digits);
-                    }
-
-                    if(prevStopLost!=sl && nextStopLost != 1000){
-                         OrderModify(OrderTicket(),OrderOpenPrice(),sl,OrderTakeProfit(),0,Blue);
-                    }
-                 }
-              }
-         }
-    }
-
+//first Entry
     if (
-        OrdersTotal()<MaxOrder
-        && lastOpen<iTime(Symbol(),PERIOD_CURRENT,MinSpaceOrder)
-        && AQ<=ProfitTaget
+        OrdersTotal()<1
+        && Status==STATUS_CLOSE
+        && lastOpen<iTime(Symbol(),PERIOD_CURRENT,5)
+        && AQ<=DailyProfitTaget
+//        && AQ>DailyMaxLoss
     ){
         if (Order==SIGNAL_BUY)
         {
+           MartiBuyAt   = Ask;
+           MartiSellAt  = NormalizeDouble(Bid+(MartiIn*Point),Digits);
            lastOpen = iTime(Symbol(),0,0);
-           Ticket = OrderSend(Symbol(),OP_BUY, optimizeLots(), Ask, Slippage, 0, 0, "BELI", 10, 0, Green);
+
+           Order = SIGNAL_NONE;
+           Status=STATUS_OPEN;
+           LastOrder = LAST_BUY;
+           MartiIndex++;
+           OpenLot = optimizeLots();
+           lastOpen = iTime(Symbol(),0,0);
+           OrderSend(Symbol(),OP_BUY, OpenLot, Ask, Slippage, 0, 0, "BELI", 10, 0, Green);
+           OpenEquity = AccountEquity();
         }
+
         else if (Order==SIGNAL_SELL)
         {
+          MartiSellAt = Bid;
+          MartiBuyAt  = NormalizeDouble(Bid+(MartiIn*Point),Digits);
           lastOpen = iTime(Symbol(),0,0);
-          Ticket = OrderSend(Symbol(),OP_SELL, optimizeLots(), Bid, Slippage, 0, 0, "JUAL", 10, 0, Red);
+
+          Order = SIGNAL_NONE;
+          Status=STATUS_OPEN;
+          LastOrder = LAST_SELL;
+          OpenLot = optimizeLots();
+          lastOpen = iTime(Symbol(),0,0);
+          OrderSend(Symbol(),OP_SELL, OpenLot, Bid, Slippage, 0, 0, "JUAL", 10, 0, Red);
+          OpenEquity = AccountEquity();
+        }
+    }
+
+//MartiEntri Entry
+    if (
+        OrdersTotal()>=1
+        && lastOpen<iTime(Symbol(),PERIOD_CURRENT,SpacePerOrder)
+        && AQ<=ProfitTaget
+    ){
+        if (
+        Status==STATUS_OPEN
+        &&  LastOrder == LAST_SELL
+        &&  Ask > MartiBuyAt
+        )
+        {
+           lastOpen = iTime(Symbol(),0,0);
+           LastOrder = LAST_BUY;
+           OpenLot = OpenLot*1.2;
+           OrderSend(Symbol(),OP_BUY, OpenLot, Ask, Slippage, 0, 0, "BELI", 10, 0, Green);
+        }
+
+        if (
+        Status==STATUS_OPEN
+        &&  LastOrder == LAST_BUY
+        &&  Bid < MartiSellAt
+        )
+        {
+          lastOpen = iTime(Symbol(),0,0);
+          LastOrder = LAST_SELL;
+          OpenLot = OpenLot*1.2;
+          OrderSend(Symbol(),OP_SELL, OpenLot, Bid, Slippage, 0, 0, "JUAL", 10, 0, Red);
         }
     }
 
