@@ -111,7 +111,8 @@ int start()
     resetTopAndBot();
     AQ = AccountEquity();
     if(OpenDay+86400<iTime(Symbol(),PERIOD_CURRENT,0)){
-        ProfitTaget = AQ+(AQ/100*MaxDailyProfit);
+        AB = AccountBalance();
+        ProfitTaget = AB+(AB/100*MaxDailyProfit);
         OpenDay = iTime(Symbol(),PERIOD_CURRENT,0);
     }
 
