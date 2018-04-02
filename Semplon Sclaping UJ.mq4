@@ -19,6 +19,8 @@ extern   bool     LotsOptimize          = true;
 extern   int      MaxOrder              = 50;
 extern   int      SpacePerOrder         = 0;
 extern   int      StepPip               = 25;
+extern   bool     OpenOnStepUp          = true;
+extern   bool     OpenStepDown          = true;
 extern   int      FastMA                = 3;
 extern   int      SlowMa                = 50;
 extern   int      VerySlowMa            = 100;
@@ -67,6 +69,23 @@ int init(){
 }
 
 int start(){
+
+   //Update HL Position
+   if(HLposition==0){
+       HLposition=Bid;
+   }
+
+   if(OpenOnStepUp && !OpenStepDown){
+        if(HLposition>Bid){
+            HLposition=Bid;
+        }
+   }
+
+   if(!OpenOnStepUp && OpenStepDown){
+        if(HLposition<Bid){
+            HLposition=Bid;
+        }
+   }
 
    //ChHECK FORCE STOP LOSS
    if(!Otomation && ReachProfit == false){
