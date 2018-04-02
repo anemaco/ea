@@ -20,7 +20,7 @@ extern   int      MaxOrder              = 50;
 extern   int      SpacePerOrder         = 0;
 extern   int      StepPip               = 25;
 extern   bool     OpenOnStepUp          = true;
-extern   bool     OpenOnStepDown          = true;
+extern   bool     OpenOnStepDown        = true;
 extern   int      FastMA                = 3;
 extern   int      SlowMa                = 50;
 extern   int      VerySlowMa            = 100;
@@ -75,13 +75,13 @@ int start(){
        HLposition=Bid;
    }
 
-   if(OpenOnStepUp && !OpenStepDown){
+   if(OpenOnStepUp && !OpenOnStepDown){
         if(HLposition>Bid){
             HLposition=Bid;
         }
    }
 
-   if(!OpenOnStepUp && OpenStepDown){
+   if(!OpenOnStepUp && OpenOnStepDown){
         if(HLposition<Bid){
             HLposition=Bid;
         }
