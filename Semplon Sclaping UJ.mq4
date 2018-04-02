@@ -17,7 +17,7 @@ extern   int      InitialBalance        = 1000;
 extern   double   InitialLots           = 0.01;
 extern   bool     LotsOptimize          = true;
 extern   int      MaxOrder              = 50;
-extern   int      SpacePerOrder         = 0;
+extern   int      SpacePerOrder         = 1;
 extern   int      StepPip               = 25;
 extern   bool     OpenOnStepUp          = true;
 extern   bool     OpenOnStepDown        = true;
@@ -50,8 +50,22 @@ double optimizeLots(){
     return InitialLots;
 }
 
+int totalOpenOrder(){
+    int totalOpen = 0;
+
+    for (i=0; i<OrdersTotal(); i++){
+      if (OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+       {
+          if(OrderType()==OP_BUY || OrderType()==OP_SELL)
+            totalOpen++;
+       }
+    }
+
+   return totalOpen;
+}
+
 void closeAll(){
-   while(OrdersTotal()>=1){
+   while(totalOpenOrder()>=1){
      for (i=0; i<OrdersTotal(); i++){
        if (OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
          {
@@ -107,7 +121,8 @@ int start(){
       }
    }
 
-   if(ReachProfit == true && OrdersTotal()==1){
+   //manual open position
+   if(ReachProfit == true && totalOpenOrder()==1){
        OrderSelect(0, SELECT_BY_POS, MODE_TRADES);
        ReachProfit = false;
        if(OrderType()==OP_BUY){
@@ -247,7 +262,7 @@ int start(){
    }
 
    if (
-       OrdersTotal()<MaxOrder
+       totalOpenOrder()<MaxOrder
        && lastOpen<=iTime(Symbol(),PERIOD_CURRENT,SpacePerOrder)
    ){
        if (Order==SIGNAL_BUY)
