@@ -30,6 +30,7 @@ extern   int      StopTrail             = 5;
 extern   int      Slippage              = 3;
 extern   int      MaxDailyStopLoss      = 50;
 extern   int      MaxDailyProfit        = 5;
+extern   int      initial               = 0;
 
 int     lastOpen           = 0;
 int     Position           = 0;
@@ -78,8 +79,34 @@ void closeAll(){
    }
 }
 
-int init(){
+void closeOpositOrder(int typeOrder){
+   int r = 0;
+    for (r=0; r<=3; r++){
+     for (i=0; i<OrdersTotal(); i++){
+       if (OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+         {
+            if(typeOrder==OP_SELL && OrderType()==OP_BUY)
+                OrderClose(OrderTicket(),OrderLots(),Bid, 3,White);
+            if(typeOrder==OP_BUY && OrderType()==OP_SELL)
+                OrderClose(OrderTicket(),OrderLots(),Ask, 3,White);
+         }
+      }
+   }
+}
 
+int init(){
+  if (initial==1)
+       {
+          lastOpen = iTime(Symbol(),0,0);
+          HLposition = Bid;
+          OrderSend(Symbol(),OP_BUY, optimizeLots(), Ask, Slippage, 0, 0, "BELI", 10, 0, Green);
+       }
+ else if (initial==2)
+       {
+         lastOpen = iTime(Symbol(),0,0);
+         HLposition = Bid;
+         OrderSend(Symbol(),OP_SELL, optimizeLots(), Bid, Slippage, 0, 0, "JUAL", 10, 0, Red);
+       }
 }
 
 int start(){
@@ -185,14 +212,20 @@ int start(){
 
     if(Otomation){
     //tentukan posisi
-      if(Bid>FastMAValue && Bid>SlowMAValue && Bid>VerySlowMAValue){
+      if(
+      Bid>FastMAValue && Bid>SlowMAValue && Bid>VerySlowMAValue
+      &&FastMAValue>SlowMAValue && SlowMAValue>VerySlowMAValue
+      ){
           Position=POSITION_BUY;
           if(Position!=POSITION_BUY){
               HLposition = Bid;
           }else if(HLposition<Bid){
               HLposition = Bid;
           }
-      }else if(Bid<FastMAValue && Bid<SlowMAValue && Bid<VerySlowMAValue){
+      }else if(
+      Bid<FastMAValue && Bid<SlowMAValue && Bid<VerySlowMAValue
+      &&FastMAValue<SlowMAValue && SlowMAValue<VerySlowMAValue
+      ){
           Position=POSITION_SELL;
           if(Position!=POSITION_SELL){
              HLposition = Bid;
@@ -203,6 +236,9 @@ int start(){
           Position=POSITION_HOLD;
           HLposition = 0;
       }
+
+       //close oposit order
+
     }
 
     //tentukan signal
