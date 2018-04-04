@@ -17,10 +17,11 @@ extern   int      InitialBalance        = 1000;
 extern   double   InitialLots           = 0.01;
 extern   bool     LotsOptimize          = true;
 extern   int      MaxOrder              = 50;
-extern   int      SpacePerOrder         = 1;
-extern   int      StepPip               = 25;
+extern   int      SpacePerOrder         = 0;
+extern   int      StepPip               = 10;
 extern   bool     OpenOnStepUp          = true;
 extern   bool     OpenOnStepDown        = true;
+extern   bool     HoldLowestOrTopest    = true;
 extern   int      FastMA                = 3;
 extern   int      SlowMa                = 50;
 extern   int      VerySlowMa            = 100;
@@ -28,8 +29,8 @@ extern   int      StopLossPerOrder      = 1000;
 extern   int      TakeProfit            = 50;
 extern   int      StopTrail             = 5;
 extern   int      Slippage              = 3;
-extern   int      MaxDailyStopLoss      = 50;
-extern   int      MaxDailyProfit        = 5;
+extern   int      MaxDailyStopLoss      = 100;
+extern   int      MaxDailyProfit        = 10;
 extern   int      initial               = 0;
 
 int     lastOpen           = 0;
@@ -40,6 +41,7 @@ double  DailyProfitTaget   = 0;
 double  DailyStopLoss      = 0;
 int     day                = 0;
 int     i                  = 0;
+double  lowestOrTopest     = 0;
 
 bool    ReachProfit       = true;
 
@@ -263,6 +265,11 @@ int start(){
              {
                 sl=OrderStopLoss();
                 if(OrderType()==OP_BUY){
+
+                   if((lowestOrTopest==0 || lowestOrTopest<OrderOpenPrice)){
+                        lowestOrTopest = OrderOpenPrice;
+                   }
+
                    prevStopLost = OrderStopLoss()==0?(-1000):OrderStopLoss();
                    if(OrderProfit()> TakeProfit*OrderLots()){
                     nextStopLost = Bid-((TakeProfit+StopTrail)*InitialLots*Point);
@@ -273,12 +280,21 @@ int start(){
                         sl=NormalizeDouble(Bid-(StopLossPerOrder*Point),Digits);
                    }
 
+                   if(lowestOrTopest==OrderOpenPrice && HoldLowestOrTopest && !Otomation){
+                        continue;
+                   }
+
                    if(prevStopLost!=sl && nextStopLost != -1000){
                         OrderModify(OrderTicket(),OrderOpenPrice(),sl,OrderTakeProfit(),0,Blue);
                    }
                 }
 
                 if(OrderType()==OP_SELL){
+
+                   if((lowestOrTopest==0 || lowestOrTopest>OrderOpenPrice)){
+                        lowestOrTopest = OrderOpenPrice;
+                   }
+
                    prevStopLost = OrderStopLoss()==0?1000:OrderStopLoss();
                    if(OrderProfit()> TakeProfit*OrderLots()){
                         nextStopLost = Ask+((TakeProfit+StopTrail)*InitialLots*Point);
@@ -287,6 +303,10 @@ int start(){
                         }
                    }else if(prevStopLost == 1000){
                        sl=NormalizeDouble(Ask+(StopLossPerOrder*Point),Digits);
+                   }
+
+                   if(lowestOrTopest==OrderOpenPrice && HoldLowestOrTopest && !Otomation){
+                        continue;
                    }
 
                    if(prevStopLost!=sl && nextStopLost != 1000){
