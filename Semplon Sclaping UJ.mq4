@@ -13,21 +13,22 @@
 #define POSITION_HOLD    0
 
 extern   bool     Otomation             = false;
-extern   int      InitialBalance        = 1000;
+extern   int      InitialBalance        = 500;
 extern   double   InitialLots           = 0.01;
 extern   bool     LotsOptimize          = true;
-extern   int      MaxOrder              = 50;
-extern   int      SpacePerOrder         = 0;
-extern   int      StepPip               = 10;
+extern   int      MaxOrder              = 30;
+extern   int      SpacePerOrder         = 1;
+extern   int      StepPip               = 25;
 extern   bool     OpenOnStepUp          = true;
 extern   bool     OpenOnStepDown        = true;
 extern   bool     HoldLowestOrTopest    = true;
+extern   int      LowOrTopSpread        = 50;
 extern   int      FastMA                = 3;
 extern   int      SlowMa                = 50;
 extern   int      VerySlowMa            = 100;
-extern   int      StopLossPerOrder      = 1000;
-extern   int      TakeProfit            = 50;
-extern   int      StopTrail             = 5;
+extern   int      StopLossPerOrder      = 10000;
+extern   int      TakeProfit            = 65;
+extern   int      StopTrail             = 15;
 extern   int      Slippage              = 3;
 extern   int      MaxDailyStopLoss      = 100;
 extern   int      MaxDailyProfit        = 10;
@@ -266,8 +267,8 @@ int start(){
                 sl=OrderStopLoss();
                 if(OrderType()==OP_BUY){
 
-                   if((lowestOrTopest==0 || lowestOrTopest<OrderOpenPrice)){
-                        lowestOrTopest = OrderOpenPrice;
+                   if((lowestOrTopest==0 || lowestOrTopest>OrderOpenPrice()+LowOrTopSpread*Point)){
+                        lowestOrTopest = OrderOpenPrice()+LowOrTopSpread*Point;
                    }
 
                    prevStopLost = OrderStopLoss()==0?(-1000):OrderStopLoss();
@@ -280,7 +281,7 @@ int start(){
                         sl=NormalizeDouble(Bid-(StopLossPerOrder*Point),Digits);
                    }
 
-                   if(lowestOrTopest==OrderOpenPrice && HoldLowestOrTopest && !Otomation){
+                   if(lowestOrTopest>OrderOpenPrice() && HoldLowestOrTopest && !Otomation){
                         continue;
                    }
 
@@ -290,9 +291,8 @@ int start(){
                 }
 
                 if(OrderType()==OP_SELL){
-
-                   if((lowestOrTopest==0 || lowestOrTopest>OrderOpenPrice)){
-                        lowestOrTopest = OrderOpenPrice;
+                   if((lowestOrTopest==0 || lowestOrTopest<OrderOpenPrice()-LowOrTopSpread*Point)){
+                        lowestOrTopest = OrderOpenPrice()-LowOrTopSpread*Point;
                    }
 
                    prevStopLost = OrderStopLoss()==0?1000:OrderStopLoss();
@@ -305,7 +305,7 @@ int start(){
                        sl=NormalizeDouble(Ask+(StopLossPerOrder*Point),Digits);
                    }
 
-                   if(lowestOrTopest==OrderOpenPrice && HoldLowestOrTopest && !Otomation){
+                   if(lowestOrTopest<OrderOpenPrice() && HoldLowestOrTopest && !Otomation){
                         continue;
                    }
 
