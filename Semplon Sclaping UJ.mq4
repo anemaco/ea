@@ -208,6 +208,7 @@ int start(){
        closeAll();
        ReachProfit = true;
        Position=POSITION_HOLD;
+       lowestOrTopest     = 0;
     }
 
     int Order = SIGNAL_NONE;
