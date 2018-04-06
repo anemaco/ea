@@ -140,12 +140,14 @@ int start(){
                closeAll();
                ReachProfit = true;
                Position=POSITION_HOLD;
+               lowestOrTopest     = 0;
             }
 
             if(Position==POSITION_BUY && OrderType()==OP_SELL){
                closeAll();
                ReachProfit = true;
                Position=POSITION_HOLD;
+               lowestOrTopest     = 0;
             }
          }
       }
@@ -198,6 +200,7 @@ int start(){
         closeAll();
         ReachProfit = true;
         Position=POSITION_HOLD;
+        lowestOrTopest     = 0;
     }
 
     //STOP LOSS
