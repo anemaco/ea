@@ -12,27 +12,29 @@
 #define POSITION_SELL   2
 #define POSITION_HOLD    0
 
-extern   bool     Otomation             = false;
 extern   int      InitialBalance        = 500;
 extern   double   InitialLots           = 0.01;
 extern   bool     LotsOptimize          = true;
 extern   int      MaxOrder              = 30;
-extern   int      SpacePerOrder         = 1;
-extern   int      StepPip               = 25;
+extern   int      SpacePerOrder         = 0;
+extern   int      distance              = 25;
 extern   bool     OpenOnStepUp          = true;
 extern   bool     OpenOnStepDown        = true;
 extern   bool     HoldLowestOrTopest    = true;
-extern   int      LowOrTopSpread        = 50;
-extern   int      FastMA                = 3;
-extern   int      SlowMa                = 50;
-extern   int      VerySlowMa            = 100;
-extern   int      StopLossPerOrder      = 10000;
-extern   int      TakeProfit            = 65;
-extern   int      StopTrail             = 15;
+extern   int      LowOrTopSpread        = 75;
+extern   int      TakeProfit            = 45;
+extern   int      StopTrail             = 5;
 extern   int      Slippage              = 3;
 extern   int      MaxDailyStopLoss      = 100;
-extern   int      MaxDailyProfit        = 10;
+extern   int      MaxDailyProfit        = 5;
 extern   int      initial               = 0;
+
+bool     Otomation         = false;
+int      FastMA            = 3;
+int      SlowMa            = 50;
+int      VerySlowMa        = 100;
+int      StopLossPerOrder  = 10000;
+
 
 int     lastOpen           = 0;
 int     Position           = 0;
@@ -97,6 +99,19 @@ void closeOpositOrder(int typeOrder){
    }
 }
 
+bool allowDistanceToOpen(){
+    if(!(MathAbs(HLposition-Bid)>distance*Point)) return false;
+
+    for (i=0; i<OrdersTotal(); i++){
+      if (OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+        {
+            if(MathAbs(OrderOpenPrice()-Bid)<distance*Point) return false;
+        }
+     }
+
+     return true;
+}
+
 int init(){
   if (initial==1)
        {
@@ -136,14 +151,7 @@ int start(){
      for (i=0; i<OrdersTotal(); i++){
        if (OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
          {
-            if(Position==POSITION_SELL && OrderType()==OP_BUY){
-               closeAll();
-               ReachProfit = true;
-               Position=POSITION_HOLD;
-               lowestOrTopest     = 0;
-            }
-
-            if(Position==POSITION_BUY && OrderType()==OP_SELL){
+            if(OrderType()==OP_BUYLIMIT && OrderOpenPrice()==1*Point){
                closeAll();
                ReachProfit = true;
                Position=POSITION_HOLD;
@@ -249,7 +257,7 @@ int start(){
     }
 
     //tentukan signal
-    if(HLposition>Bid+StepPip*Point || HLposition<Bid-StepPip*Point){
+    if(allowDistanceToOpen()){
         if(Position==POSITION_BUY){
             Order = SIGNAL_BUY;
         }
