@@ -16,12 +16,12 @@
 
 extern   int      InitialBalance        = 1000;
 extern   double   InitialLots           = 0.01;
-extern   bool     LotsOptimize          = false;
+extern   bool     LotsOptimize          = true;
 extern   int      FastMA                = 3;
 extern   int      SlowMa                = 15;
 extern   int      SpacePerOrder         = 5;
 extern   int      ForceXcandle          = 5;
-extern   int      MartiIn               = 20;
+extern   int      MartiIn               = 50;
 extern   double   TakeProfitBaseCurency = 10;
 extern   int      Slippage              = 3;
 extern   double   MaxDailyProfit        = 0.02;
@@ -177,7 +177,7 @@ int start()
         {
            lastOpen = iTime(Symbol(),0,0);
            LastOrder = LAST_BUY;
-           OpenLot = OpenLot*1.2;
+           OpenLot = OpenLot*1.5;
            OrderSend(Symbol(),OP_BUY, OpenLot, Ask, Slippage, 0, 0, "BELI", 10, 0, Green);
         }
 
@@ -189,7 +189,7 @@ int start()
         {
           lastOpen = iTime(Symbol(),0,0);
           LastOrder = LAST_SELL;
-          OpenLot = OpenLot*1.2;
+          OpenLot = OpenLot*1.5;
           OrderSend(Symbol(),OP_SELL, OpenLot, Bid, Slippage, 0, 0, "JUAL", 10, 0, Red);
         }
     }
