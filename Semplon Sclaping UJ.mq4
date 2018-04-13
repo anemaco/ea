@@ -103,13 +103,17 @@ void closeOpositOrder(int typeOrder){
    }
 }
 
-bool allowDistanceToOpen(){
+bool allowDistanceToOpen(int buyOrSell){
     if(!(MathAbs(HLposition-Bid)>distance*pnt)) return false;
 
     for (i=0; i<OrdersTotal(); i++){
       if (OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
         {
-            if(MathAbs(OrderOpenPrice()-Bid)<distance*pnt) return false;
+            if(buyOrSell==POSITION_SELL){
+                if(MathAbs(OrderOpenPrice()-Bid)<distance*pnt) return false;
+            }else if(buyOrSell==POSITION_BUY){
+                if(MathAbs(OrderOpenPrice()-Ask)<distance*pnt) return false;
+            }
         }
      }
 
@@ -291,14 +295,12 @@ int start(){
     }
 
     //tentukan signal
-    if(allowDistanceToOpen()){
-        if(Position==POSITION_BUY){
-            Order = SIGNAL_BUY;
-        }
+    if(Position==POSITION_BUY && allowDistanceToOpen(POSITION_BUY)){
+        Order = SIGNAL_BUY;
+    }
 
-        if(Position==POSITION_SELL){
-            Order = SIGNAL_SELL;
-        }
+    if(Position==POSITION_SELL && allowDistanceToOpen(POSITION_SELL)){
+        Order = SIGNAL_SELL;
     }
 
 
