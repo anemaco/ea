@@ -1,11 +1,12 @@
 //+------------------------------------------------------------------+
-//| Buy Sell use 3 MA.mq4                                            |
+//| EA RSI DIVERGEN                                                  |
 //+------------------------------------------------------------------+
-#property copyright "Adnan De Semplon"
+#property copyright "Adnan Adiatman"
 
-#define SIGNAL_NONE 0
+#define SIGNAL_NONE  0
 #define SIGNAL_BUY   1
 #define SIGNAL_SELL  2
+
 
 extern   int      InitialBalance        = 100;
 extern   double   InitialLots           = 0.01;
@@ -93,6 +94,12 @@ void UpdateStopLost(){
     }
 }
 
+int init()                          // Special function init()
+{
+
+}
+
+
 int start()
  {
     UpdateStopLost();
@@ -102,56 +109,87 @@ int start()
     int Order = SIGNAL_NONE;
 
     int timeFrame = PERIOD_CURRENT;
+    int position  = 1;
 
-    backIndex = SearchBack;
-    int position  = TotalCandle+SearchBack;
+//===================================================================
+//===================================================================
+       position  = SearchBack+1;
 
-    while(position>0){
-      rsiUp[position]  = iRSI(NULL, PERIOD_CURRENT, RsiPeriod, PRICE_CLOSE,position);
-      position--;
-    }
+       while(position>=0){
+          rsiDown[position] = iRSI(NULL, timeFrame, RsiPeriod, PRICE_CLOSE,position);
+          position--;
+       }
+//===================================================================
+//===================================================================
+       position  = SearchBack+1;
 
-    position  = 1;
-    while(backIndex>=0){
-        if(
+       while(position>=0){
+          rsiUp[position]  = iRSI(NULL, timeFrame, RsiPeriod, PRICE_LOW,position);
+          position--;
+       }
+//===================================================================
+//===================================================================
+
+        position  = 1;
+
+
+//===================================================================
+//===================================================================
+          int backIndex = 1;
+
+          while(backIndex <= SearchBack){
+            if(rsiDown[position+backIndex]>40){
+                backIndex = SearchBack+1;
+                continue;
+            }
+
+            if(
             rsiUp[position]>rsiUp[position+backIndex]&&
-            rsiUp[position+backIndex]<=32 &&
+            rsiUp[position+backIndex]<=40 &&
             rsiUp[position+backIndex]<rsiUp[position+backIndex+1] &&
-            rsiUp[position+backIndex]<rsiUp[position+backIndex-1] &&
             rsiUp[position+backIndex]<rsiUp[position+backIndex+2] &&
-            rsiUp[position+backIndex]<rsiUp[position+backIndex-2] &&
-            rsiUp[position]<=32 &&
+            rsiUp[position]<=40 &&
             Low[position]<Low[position+backIndex]&&
-            Low[position]<Low[position+1]
-        )Order = SIGNAL_BUY;
+            Low[position]<Low[position+1]&&
+            Low[1]<Low[position]
+            ){
+                TrendLine(Time[position], Time[position+backIndex], Low[position+backIndex], Time[position], Low[position], clrAqua, STYLE_DOT, 2, false);
+                Order = SIGNAL_BUY;
+                backIndex = SearchBack+1;
+                continue;
+            }
 
-        backIndex--;
-      }
+            backIndex++;
+          }
+//===================================================================
+//===================================================================
+        backIndex = 1;
 
-     position  = TotalCandle+SearchBack;
+        while(backIndex <= SearchBack){
+          if(rsiDown[position+backIndex]<60){
+            backIndex = SearchBack+1;
+            continue;
+          }
 
-     while(position>=0){
-        rsiDown[position] = iRSI(NULL, PERIOD_CURRENT, RsiPeriod, PRICE_CLOSE,position);
-        position--;
-     }
+          if(
+            rsiDown[position]<rsiDown[position+backIndex]&&
+            rsiDown[position+backIndex]>=60 &&
+            rsiDown[position+backIndex]>rsiDown[position+backIndex+1] &&
+            rsiDown[position+backIndex]>rsiDown[position+backIndex+2] &&
+            rsiDown[position]>=60 &&
+            rsiDown[position]>rsiDown[position+1]&&
+            High[position]>High[position+backIndex]&&
+            High[position]>High[position+1]&&
+            High[0]>High[position]
+          ){
+             TrendLine(Time[position], Time[position+backIndex], High[position+backIndex], Time[position], High[position], clrRed, STYLE_DOT, 2, false);
+             Order = SIGNAL_SELL;
+             backIndex = SearchBack+1;
+             continue;
+          }
 
-      backIndex = SearchBack;
-      while(backIndex>=0){
-         if(
-             rsiDown[position]<rsiDown[position+backIndex]&&
-             rsiDown[position+backIndex]>=68 &&
-             rsiDown[position+backIndex]>rsiDown[position+backIndex+1] &&
-             rsiDown[position+backIndex]>rsiDown[position+backIndex-1] &&
-             rsiDown[position+backIndex]>rsiDown[position+backIndex+2] &&
-             rsiDown[position+backIndex]>rsiDown[position+backIndex-2] &&
-             rsiDown[position]>=68 &&
-             rsiDown[position]>rsiDown[position+1]&&
-             High[position]>High[position+backIndex]&&
-             High[position]>High[position+1]
-         )Order = SIGNAL_SELL;
-
-         backIndex--;
-     }
+          backIndex++;
+        }
 
     if (
         OrdersTotal()<MaxOrder
@@ -171,4 +209,35 @@ int start()
     }
 
     return(0);
+ }
+
+ void TrendLine( string name, datetime T0, double P0, datetime T1, double P1, color clr, string style,int width, bool ray=false )
+ {
+    if(ObjectFind(name) != 0)
+    {
+       if(!ObjectCreate( name, OBJ_TREND, 0, T0, P0, T1, P1 ))
+          Alert("ObjectCreate(",name,",TREND) failed: ", GetLastError() );
+       else if (!ObjectSet( name, OBJPROP_RAY, ray ))
+          Alert("ObjectSet(", name, ",Ray) failed: ", GetLastError());
+       if (!ObjectSet(name, OBJPROP_COLOR, clr )) // Allow color change
+          Alert("ObjectSet(", name, ",Color) [2] failed: ", GetLastError());
+       if (!ObjectSet(name,OBJPROP_STYLE,style)) // Allow color change
+          Alert("ObjectSet(", name, ",Style) [2] failed: ", GetLastError());
+       if (!ObjectSet(name,OBJPROP_WIDTH,width)) // Allow color change
+          Alert("ObjectSet(", name, ",Width) [2] failed: ", GetLastError());
+    }
+    else
+    {
+       ObjectDelete(name);
+       if(!ObjectCreate( name, OBJ_TREND, 0, T0, P0, T1, P1 ))
+          Alert("ObjectCreate(",name,",TREND) failed: ", GetLastError() );
+       else if (!ObjectSet( name, OBJPROP_RAY, ray ))
+          Alert("ObjectSet(", name, ",Ray) failed: ", GetLastError());
+       if (!ObjectSet(name, OBJPROP_COLOR, clr )) // Allow color change
+          Alert("ObjectSet(", name, ",Color) [2] failed: ", GetLastError());
+       if (!ObjectSet(name,OBJPROP_STYLE,style)) // Allow color change
+          Alert("ObjectSet(", name, ",Style) [2] failed: ", GetLastError());
+       if (!ObjectSet(name,OBJPROP_WIDTH,width)) // Allow color change
+          Alert("ObjectSet(", name, ",Width) [2] failed: ", GetLastError());
+     }
  }
