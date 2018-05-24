@@ -11,18 +11,25 @@
 #define POSITION_BUY     1
 #define POSITION_SELL   2
 #define POSITION_HOLD    0
+extern   string   XXXXXX                ="SETTING FOR H4";
+extern   string   XXXXXXX               ="///MA SETTING////";
+extern   int      ma_period             = 21;
+extern   ENUM_MA_METHOD   ma_method     = 1;
+extern   int      space_with_ma         = 500;
 
-extern   int      InitialBalance        = 500;
+extern   string   xxxxxxx               ="////////////////";
+extern   int      InitialBalance        = 100;
 extern   double   InitialLots           = 0.01;
 extern   bool     LotsOptimize          = true;
 extern   int      MaxOrder              = 100;
 extern   int      SpacePerOrder         = 0;
-extern   int      distance              = 15;
+extern   int      distance              = 10;
 extern   bool     OpenOnStepUp          = true;
 extern   bool     OpenOnStepDown        = true;
 extern   bool     HoldLowestOrTopest    = false;
 extern   int      LowOrTopSpread        = 50;
-extern   int      TakeProfit            = 100;
+extern   int      StopLossPerOrder      = 500;
+extern   int      TakeProfit            = 200;
 extern   int      StopTrail             = 30;
 extern   int      Slippage              = 3;
 extern   int      MaxDailyStopLoss      = 100;
@@ -33,7 +40,9 @@ bool     Otomation         = false;
 int      FastMA            = 3;
 int      SlowMa            = 50;
 int      VerySlowMa        = 100;
-int      StopLossPerOrder  = 10000;
+
+double     space_buy          = 0;
+double     space_sell         = 0;
 
 
 int     lastOpen           = 0;
@@ -278,40 +287,13 @@ int start(){
 
     int Order = SIGNAL_NONE;
 
-    double FastMAValue = iMA(Symbol(), PERIOD_CURRENT, FastMA, 0, MODE_SMA, PRICE_CLOSE, 0);
-    double SlowMAValue = iMA(Symbol(), PERIOD_CURRENT, SlowMa, 0, MODE_SMA, PRICE_CLOSE, 0);
-    double VerySlowMAValue = iMA(Symbol(), PERIOD_CURRENT, VerySlowMa, 0, MODE_SMA, PRICE_CLOSE, 0);
+    double MABuy  = iMA(Symbol(), PERIOD_CURRENT, ma_period, 0, ma_method, PRICE_HIGH, 0);
+    double MASell = iMA(Symbol(), PERIOD_CURRENT, ma_period, 0, ma_method, PRICE_LOW, 0);
+    double FastMa = iMA(Symbol(), PERIOD_CURRENT, 1, 0, MODE_SMA, PRICE_CLOSE, 0);
 
-    if(Otomation){
-    //tentukan posisi
-      if(
-      Bid>FastMAValue && Bid>SlowMAValue && Bid>VerySlowMAValue
-      &&FastMAValue>SlowMAValue && SlowMAValue>VerySlowMAValue
-      ){
-          Position=POSITION_BUY;
-          if(Position!=POSITION_BUY){
-              HLposition = Bid;
-          }else if(HLposition<Bid){
-              HLposition = Bid;
-          }
-      }else if(
-      Bid<FastMAValue && Bid<SlowMAValue && Bid<VerySlowMAValue
-      &&FastMAValue<SlowMAValue && SlowMAValue<VerySlowMAValue
-      ){
-          Position=POSITION_SELL;
-          if(Position!=POSITION_SELL){
-             HLposition = Bid;
-          }else if(HLposition>Bid){
-              HLposition = Bid;
-          }
-      }else{
-          Position=POSITION_HOLD;
-          HLposition = 0;
-      }
+    space_buy = FastMa-MABuy;
 
-       //close oposit order
-
-    }
+    space_sell = MASell-FastMa;
 
     //tentukan signal
     if(Position==POSITION_BUY && allowDistanceToOpen(POSITION_BUY)){
@@ -321,8 +303,6 @@ int start(){
     if(Position==POSITION_SELL && allowDistanceToOpen(POSITION_SELL)){
         Order = SIGNAL_SELL;
     }
-
-
 
     if(OrdersTotal()>=1){
         double sl=0;
@@ -390,17 +370,17 @@ int start(){
        totalOpenOrder()<MaxOrder
        && lastOpen<=iTime(Symbol(),PERIOD_CURRENT,SpacePerOrder)
    ){
-       if (Order==SIGNAL_BUY)
+       if (Order==SIGNAL_BUY && space_buy<=space_with_ma*pnt && space_buy>0 && iLow(Symbol(),PERIOD_CURRENT,0)>=MABuy)
        {
           lastOpen = iTime(Symbol(),0,0);
           HLposition = Bid;
-          OrderSend(Symbol(),OP_BUY, optimizeLots(), Ask, Slippage, 0, 0, "BELI", 10, 0, Green);
+          OrderSend(Symbol(),OP_BUY, optimizeLots(), Ask, Slippage, Bid-StopLossPerOrder*pnt, 0, "BELI", 10, 0, Green);
        }
-       else if (Order==SIGNAL_SELL)
+       else if (Order==SIGNAL_SELL && space_sell<=space_with_ma*pnt && space_sell>0 && iHigh(Symbol(),PERIOD_CURRENT,0)<=MASell)
        {
          lastOpen = iTime(Symbol(),0,0);
          HLposition = Bid;
-         OrderSend(Symbol(),OP_SELL, optimizeLots(), Bid, Slippage, 0, 0, "JUAL", 10, 0, Red);
+         OrderSend(Symbol(),OP_SELL, optimizeLots(), Bid, Slippage, Ask+StopLossPerOrder*pnt, 0, "JUAL", 10, 0, Red);
        }
    }
 
